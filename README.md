@@ -1,4 +1,4 @@
-# Dalal Street Pulse
+# India Stock Market Report
 
 Live Indian Market Report: a static, single-page site (no build step, no external scripts).
 

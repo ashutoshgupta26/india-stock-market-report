@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Dalal Street Pulse: refresh live prices -> data.json
+// India Stock Market Report: refresh live prices -> data.json
 // Node 20+, no npm dependencies. Data: Yahoo Finance spark + chart endpoints.
 // Usage: node scripts/update-prices.mjs        (writes ../data.json only if prices changed)
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
