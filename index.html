@@ -190,6 +190,8 @@ td.why{color:var(--ink-3);font-size:12.5px;min-width:160px}
 .news{list-style:none;padding:0;display:grid;gap:0}
 .news li{padding:9px 0 9px 16px;border-bottom:1px solid var(--line);position:relative;font-size:14px;color:var(--ink-2)}
 .news li:last-child{border-bottom:0}
+.news a,td a{color:inherit;text-decoration:none}.news a:hover,td a:hover{text-decoration:underline}
+.src{display:block;font-size:11.5px;color:var(--ink-3);margin-top:2px}
 .news li::before{content:"";position:absolute;left:2px;top:16px;width:6px;height:6px;border-radius:50%;background:var(--accent)}
 .facts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .fact{background:var(--card-2);border-radius:10px;padding:10px 12px}
@@ -278,7 +280,7 @@ footer p+p{margin-top:6px}
   <section class="panel" id="outlook" role="tabpanel" aria-labelledby="t-outlook" hidden></section>
 </main>
 <footer class="wrap">
-  <p id="src">Prices: Yahoo Finance (may be delayed up to 15 minutes). Bullion: IBJA. Commentary is written per report session.</p>
+  <p id="src">Prices: Yahoo Finance (may be delayed up to 15 minutes). Bullion: IBJA. News: Economic Times, Mint, Business Standard and Google News headlines. FII/DII, IPOs and corporate actions: NSE. Summary, mood and key levels (classic pivot points) are computed automatically from prices.</p>
   <p><b>Not investment advice.</b> For information only; verify before trading.</p>
 </footer>
 <div id="tip" role="tooltip"></div>
@@ -508,7 +510,9 @@ function renderSectors(){
 }
 
 /* ---------- news ---------- */
-function list(arr){return '<ul class="news">'+(arr||[]).map(function(x){return '<li>'+t(x)+'</li>'}).join('')+'</ul>'}
+function ago(ts){if(!ts)return '';var m=Math.round((Date.now()-ts)/60000);return m<60?Math.max(1,m)+'m ago':m<1440?Math.round(m/60)+'h ago':new Intl.DateTimeFormat('en-GB',{timeZone:IST,day:'numeric',month:'short'}).format(new Date(ts))}
+function item(x){if(typeof x==='string')return t(x);var safe=/^https?:\/\//.test(x.url||'');return (safe?'<a href="'+esc(x.url)+'" target="_blank" rel="noopener">'+t(x.title)+'</a>':t(x.title))+'<span class="src">'+esc(x.src||'')+(x.ts?' · '+ago(x.ts):'')+'</span>'}
+function list(arr){return '<ul class="news">'+(arr||[]).map(function(x){return '<li>'+item(x)+'</li>'}).join('')+'</ul>'}
 function renderNews(){
   var h='<div class="note" style="margin:0">'+esc(N.session||'')+(N.asOfLabel?' · '+esc(N.asOfLabel):'')+'</div>';
   h+='<div class="grid g-2"><div class="card reveal"><h2>Stock news</h2>'+list(N.stockNews)+'</div><div class="card reveal"><h2>Economy</h2>'+list(N.econNews)+'</div></div>';
@@ -518,8 +522,8 @@ function renderNews(){
     (ipos.length?'<div class="tbl-wrap"><table><thead><tr><th>Issue</th><th>Price band</th><th>Closes</th><th class="r">Subscribed</th></tr></thead><tbody>'+ipos.map(function(i){return '<tr><td><b>'+esc(i.name)+'</b></td><td class="num">'+t(i.price||'–')+'</td><td class="num">'+esc((i.close||'').slice(0,6))+'</td><td class="r num">'+(i.subs!=null?nf(i.subs)+'x':'–')+'</td></tr>'}).join('')+'</tbody></table></div><div class="note">Subscription as of the report time.</div>':'')+'</div>'+
     '<div class="card reveal"><h2>Earnings &amp; corporate actions</h2>'+list(N.earnings)+((N.corpActions||[]).length?'<div class="tbl-wrap" style="margin-top:8px"><table><thead><tr><th>Stock</th><th>Action</th><th>Ex-date</th></tr></thead><tbody>'+N.corpActions.map(function(c){return '<tr><td><b>'+esc(c.symbol)+'</b></td><td>'+t(c.subject)+'</td><td class="num" style="white-space:nowrap">'+esc((c.exDate||'').slice(0,6))+'</td></tr>'}).join('')+'</tbody></table></div>':'')+'</div></div>';
   var an=N.analyst||[];
-  if(an.length)h+='<div class="card reveal"><h2>Analyst views</h2><div class="tbl-wrap"><table><thead><tr><th>Stock</th><th>View</th><th>Target / theme</th><th>Broker</th></tr></thead><tbody>'+an.map(function(a){if(typeof a==='string')return '<tr><td colspan="4">'+t(a)+'</td></tr>';
-    return '<tr><td><b>'+t(a.stock)+'</b></td><td><span class="badge '+(/sell|under|reduce/i.test(a.view)?'dn':'up')+'">'+t(a.view)+'</span></td><td class="num">'+t(a.target)+'</td><td>'+t(a.broker)+'</td></tr>'}).join('')+'</tbody></table></div><div class="note">Brokerage views as reported in the news; not recommendations.</div></div>';
+  if(an.length)h+='<div class="card reveal"><h2>Analyst views</h2><div class="tbl-wrap"><table><thead><tr><th>Stock</th><th>View</th><th>Target / theme</th><th>Broker</th></tr></thead><tbody>'+an.map(function(a){if(typeof a==='string'||a.title)return '<tr><td colspan="4">'+item(a)+'</td></tr>';
+    return '<tr><td><b>'+t(a.stock)+'</b></td><td><span class="badge '+(/sell|under|reduce/i.test(a.view)?'dn':'up')+'">'+t(a.view)+'</span></td><td class="num">'+t(a.target)+'</td><td>'+t(a.broker)+'</td></tr>'}).join('')+'</tbody></table></div><div class="note">Brokerage and analyst calls as reported in the news; not recommendations.</div></div>';
   $('#news').innerHTML=h;
 }
 
