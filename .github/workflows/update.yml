@@ -9,39 +9,52 @@ on:
     # Outside market hours: news every hour (IST ~06:30-23:30, every day)
     - cron: "0 1-2,11-18 * * *"
     - cron: "0 3-10 * * 0,6"
+  push:
+    branches: [main]
   workflow_dispatch:
 
+# Data is published straight to GitHub Pages and never committed, so the repo does not grow.
 permissions:
-  contents: write
+  contents: read
+  pages: write
+  id-token: write
 
 concurrency:
-  group: update-prices
+  group: pages
   cancel-in-progress: false
 
 jobs:
   update:
     runs-on: ubuntu-latest
     timeout-minutes: 8
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      - name: Load the last published data
+        run: |
+          for f in data.json news.json; do
+            curl -fsSL -m 20 "https://ashutoshgupta26.github.io/india-stock-market-report/$f?t=$(date +%s)" -o "$f.tmp" && mv "$f.tmp" "$f" || rm -f "$f.tmp"
+          done
       - name: Fetch prices
         run: node scripts/update-prices.mjs
         continue-on-error: true
       - name: Fetch news and build commentary
         run: node scripts/update-news.mjs
         continue-on-error: true
-      - name: Commit changes
+      - name: Build site
         run: |
-          if git diff --quiet -- data.json news.json; then
-            echo "No changes"
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data.json news.json
-          git commit -m "Update market data $(TZ=Asia/Kolkata date '+%Y-%m-%d %H:%M IST')"
-          git pull --rebase --autostash origin "${GITHUB_REF_NAME}" || true
-          git push
+          test -s data.json || { echo "No data.json, keeping the current site"; exit 1; }
+          mkdir _site
+          cp index.html data.json _site/
+          [ -s news.json ] && cp news.json _site/ || true
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+          retention-days: 1
+      - id: deploy
+        uses: actions/deploy-pages@v4

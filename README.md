@@ -5,7 +5,7 @@ Live Indian Market Report: a static, single-page site (no build step, no externa
 - `index.html` - the page (tabs: Overview, Stocks, Sectors, News, Outlook). Reads `data.json` and `news.json`, re-fetches every 60 s while the market is open.
 - `data.json` - prices, written by `scripts/update-prices.mjs` (Node 20, no dependencies; Yahoo Finance chart/spark endpoints, IBJA bullion rates).
 - `news.json` - commentary, news, reasons, FII/DII, IPOs and outlook. Edit by hand or from your report pipeline; set `asOf` to the session date it describes (reasons for movers and sectors are only shown when `asOf` matches the price session).
-- `.github/workflows/update.yml` - runs the script every 5 minutes during NSE hours (Mon-Fri) and commits `data.json` only when it changes.
+- `.github/workflows/update.yml` - runs the scripts every 5 minutes during NSE hours (Mon-Fri), hourly otherwise, and publishes the page with fresh `data.json` and `news.json` straight to GitHub Pages. The data files are not committed, so the repo does not grow. Pages source must be set to "GitHub Actions".
 
 ## Run locally
 
