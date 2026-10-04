@@ -64,7 +64,8 @@ header.top{position:sticky;top:0;z-index:20;backdrop-filter:saturate(1.4) blur(1
 .tab:hover{background:var(--card-2)}
 .tab[aria-selected="true"]{background:var(--ink);color:var(--page)}
 .brand .s-m{display:none}
-@media (max-width:640px){.bar{gap:8px}.brand .t{font-size:15px}.brand .s{display:none}.brand .s-m{display:block}.upd{display:none}}
+.brand{flex:1 1 auto}.brand .t{overflow:hidden;text-overflow:ellipsis}
+@media (max-width:640px){.bar{gap:8px}.brand .t{font-size:14px;letter-spacing:-.02em;white-space:normal;line-height:1.15}.brand .s{display:none}.pill{padding:4px 8px;font-size:11px}.brand .s-m{display:block}.upd{display:none}}
 @media (max-width:380px){.upd{display:none}}
 
 /* ticker tape */
