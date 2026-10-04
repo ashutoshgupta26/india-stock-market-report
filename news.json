@@ -1,0 +1,274 @@
+{
+ "asOf": "2026-10-01",
+ "asOfLabel": "1 Oct 2026, 3:30 PM IST",
+ "session": "Closing Report · 3:30 PM",
+ "mood": "Bearish",
+ "summary": "Nifty closes -0.88% at 22,422 (low 22,217); Sensex -571 at 71,910, 4th straight fall. Autos -3.5% on Bajaj Auto (-7.6%), Maruti (-4.9%). IT +2.2% lone gainer. FPIs sold Rs 9,484 Cr.",
+ "trending": [
+  {
+   "symbol": "BAJAJ-AUTO",
+   "reason": "Down 7.6%, top Nifty loser; weak Sept domestic 2W sales"
+  },
+  {
+   "symbol": "MARUTI",
+   "reason": "Down 4.9% despite Sept sales up 24%; auto sell-off"
+  },
+  {
+   "symbol": "M&M",
+   "reason": "Down 3%, 52-week low; tractor sales miss estimates"
+  },
+  {
+   "symbol": "MONEYVIEW",
+   "reason": "Most traded; listed at 62% premium to Rs 34 issue price"
+  },
+  {
+   "symbol": "KOTAKBANK",
+   "reason": "Heavy volumes; RBI clears Anup Kumar Saha as MD & CEO"
+  },
+  {
+   "symbol": "HDFCBANK",
+   "reason": "Up 1.8%; Anup Bagchi named MD & CEO"
+  },
+  {
+   "symbol": "INFY",
+   "reason": "Up 4.1%, top Nifty gainer; IT rally on US data"
+  },
+  {
+   "symbol": "TARIL",
+   "reason": "Up 4%; PM-DHARA grid plan boosts transformer demand"
+  },
+  {
+   "symbol": "RELIANCE",
+   "reason": "Down 1.7%; oil & gas weak as Brent tops $100"
+  },
+  {
+   "symbol": "POLICYBZR",
+   "reason": "Down 7.9%; 52-week low, below 2021 IPO price"
+  }
+ ],
+ "stockNews": [
+  "Maruti Sept sales up 24% to 2.36 lakh units, yet stock falls 5%",
+  "Hero MotoCorp Sept sales up 12% to 7.66 lakh units",
+  "HDFC Bank appoints Anup Bagchi as MD & CEO",
+  "Coal India Q2 supplies up 12%; NTPC generation up 13%",
+  "Kalyan Jewellers, PC Jeweller fall ~5% on sector pressure"
+ ],
+ "econNews": [
+  "Rupee falls 37 paise to close at 96.31 per dollar",
+  "Manufacturing PMI at 7-month high of 55.1 in Sept",
+  "GST collections rise to Rs 2.03 lakh Cr in Sept",
+  "Brent above $100; US 10-yr yield at 24-year high",
+  "Markets shut 2 Oct (Gandhi Jayanti); reopen Mon 5 Oct"
+ ],
+ "mfNews": [
+  "Kotak MF buys 3.6% of Avalon Tech for Rs 521 Cr",
+  "HDFC MF picks 2% of Molbio Diagnostics for Rs 302 Cr",
+  "SBI MF buys 1.45% stake in Innova Captab",
+  "Franklin Templeton MF reshuffles fund managers from today",
+  "Nippon India Gilt ETF NFO open till 12 Oct"
+ ],
+ "finNews": [
+  "FPIs sold Rs 9,484 Cr today; DIIs bought Rs 10,042 Cr",
+  "Indian 10-yr bond yield hits mid-2024 high",
+  "Sebi asks brokers to show investor warnings on apps",
+  "Kotak Bank gets RBI nod for Anup Kumar Saha as CEO",
+  "Nifty down 15% YTD; 8th straight weekly loss"
+ ],
+ "ipoNote": "Moneyview listed +62% at Rs 55. Carlsberg India gets Sebi nod. Vishal Nirmiti, Nityas Gems close 5 Oct.",
+ "earnings": [
+  "Sept auto sales out: Maruti +24%, M&M +15%, Hyundai record",
+  "Tech Mahindra Q2 + bonus meet on 15 Oct",
+  "Q2 FY27 results season starts mid-Oct"
+ ],
+ "analyst": [
+  {
+   "stock": "Molbio",
+   "view": "Buy",
+   "target": "Rs 1,600",
+   "broker": "Jefferies"
+  },
+  {
+   "stock": "TBO Tek",
+   "view": "Buy",
+   "target": "Rs 2,200",
+   "broker": "Nuvama"
+  },
+  {
+   "stock": "Maruti, M&M",
+   "view": "Favoured",
+   "target": "CAFE-III norms",
+   "broker": "Citi"
+  },
+  {
+   "stock": "Persistent, Hexaware",
+   "view": "Top IT picks",
+   "target": "IT challengers",
+   "broker": "Morgan Stanley"
+  }
+ ],
+ "risks": [
+  "Brent above $100 and rupee at 96.31/$ pressure margins",
+  "FPIs sold Rs 9,484 Cr today; outflows persist",
+  "3-day holiday; global bond rout and VIX spike"
+ ],
+ "bull": {
+  "level": "Above 22,620",
+  "text": "Reclaiming yesterday's close needs crude to cool and FPI selling to ease after the break."
+ },
+ "bear": {
+  "level": "Below 22,200",
+  "text": "Break of today's 22,217 low opens 22,000 if crude and US yields keep rising."
+ },
+ "conclusion": "Nifty ends at 22,422, down 4th day; autos lead losses, IT the only green sector. Watch 22,200 support, crude above $100 and FPI flows when markets reopen Monday.",
+ "gainerReasons": {
+  "MPHASIS": "IT rally on soft US inflation data",
+  "COFORGE": "IT rally on soft US inflation data",
+  "ENRIN": "Power gear rally on PM-DHARA",
+  "INFY": "IT rally; weak rupee helps exporters",
+  "CGPOWER": "PM-DHARA grid capex beneficiary",
+  "HDFCLIFE": "Insurers see defensive buying",
+  "HAVELLS": "No specific news; selective buying",
+  "POWERINDIA": "Grid capex plan lifts power gear",
+  "CUMMINSIND": "No specific news; capital goods buying",
+  "SIEMENS": "Grid capex plan lifts power gear"
+ },
+ "loserReasons": {
+  "POLICYBZR": "52-wk low; below 2021 IPO price",
+  "BAJAJ-AUTO": "Weak Sept domestic 2W sales",
+  "UNOMINDA": "Auto ancillaries hit by sector fall",
+  "MARUTI": "Auto sell-off despite 24% sales rise",
+  "SWIGGY": "No specific news; new-age stocks weak",
+  "KALYANKJIL": "Jewellery stocks under pressure",
+  "UPL": "No specific news; chemicals weak",
+  "LICHSGFIN": "Bond yields up; lenders weak",
+  "BLUESTARCO": "No specific news; durables weak",
+  "SAIL": "Metals sell off; strong dollar"
+ },
+ "sectorReasons": {
+  "IT": "Soft US inflation; Infy, Mphasis up 4%",
+  "PRIVATE BANK": "HDFC Bank up 1.8%; flat overall",
+  "HEALTHCARE": "Hospitals hit by SC markup query",
+  "PHARMA": "Mild selling; no specific news",
+  "PSU BANK": "Broad selling; rate-hike fears",
+  "OIL & GAS": "Brent above $100 hits OMCs, RIL",
+  "REALTY": "Rate-hike fears weigh",
+  "CHEMICALS": "UPL leads fall; no specific news",
+  "FMCG": "Crude-led input cost worries",
+  "CONSUMER DURABLES": "Blue Star, Kalyan drag",
+  "CEMENT": "Fuel costs up with crude",
+  "METAL": "SAIL leads fall; strong dollar",
+  "MEDIA": "Broad smallcap selling",
+  "AUTO": "Bajaj, Maruti, M&M sell-off"
+ },
+ "assetReasons": {
+  "Gold": "Flat; high yields cap safe-haven bid",
+  "Silver": "Up 1%, tracks industrial metals",
+  "Bitcoin": "Small gain; steady risk mood"
+ },
+ "fiidii": [
+  {
+   "cat": "DII",
+   "date": "01-Oct-2026",
+   "buy": 25420.04,
+   "sell": 15378.2,
+   "net": 10041.84
+  },
+  {
+   "cat": "FII/FPI",
+   "date": "01-Oct-2026",
+   "buy": 12260.26,
+   "sell": 21744.48,
+   "net": -9484.22
+  }
+ ],
+ "ipos": [
+  {
+   "name": "Vishal Nirmiti",
+   "price": "₹208 to ₹220",
+   "open": "30-Sep-2026",
+   "close": "05-Oct-2026",
+   "subs": 0.44
+  },
+  {
+   "name": "Nityas Gems and Jewellery",
+   "price": "₹70 to ₹75",
+   "open": "30-Sep-2026",
+   "close": "05-Oct-2026",
+   "subs": 0.43
+  },
+  {
+   "name": "Eventions",
+   "price": null,
+   "open": "30-Sep-2026",
+   "close": "05-Oct-2026",
+   "subs": 1.75
+  },
+  {
+   "name": "Papadmalji Agro Foods",
+   "price": null,
+   "open": "29-Sep-2026",
+   "close": "01-Oct-2026",
+   "subs": 2.46
+  },
+  {
+   "name": "Green Asia Impex",
+   "price": null,
+   "open": "24-Sep-2026",
+   "close": "01-Oct-2026",
+   "subs": 0.98
+  }
+ ],
+ "corpActions": [
+  {
+   "symbol": "IGL",
+   "subject": "Dividend - Rs 1.50 Per Share",
+   "exDate": "01-Oct-2026"
+  },
+  {
+   "symbol": "NATCOPHARM",
+   "subject": "Rights 2:21 @ Premium Rs 748/-",
+   "exDate": "01-Oct-2026"
+  },
+  {
+   "symbol": "RSYSTEMS",
+   "subject": "Interim Dividend - Rs 8 Per Share",
+   "exDate": "01-Oct-2026"
+  },
+  {
+   "symbol": "KMSUGAR",
+   "subject": "Demerger",
+   "exDate": "01-Oct-2026"
+  },
+  {
+   "symbol": "NMDC",
+   "subject": "Dividend - Re 1 Per Share",
+   "exDate": "05-Oct-2026"
+  },
+  {
+   "symbol": "VERANDA",
+   "subject": "Demerger",
+   "exDate": "06-Oct-2026"
+  },
+  {
+   "symbol": "BLSE",
+   "subject": "Face Value Split (Sub-Division) - From Rs 10/- Per Share To Rs 5/- Per Share",
+   "exDate": "06-Oct-2026"
+  },
+  {
+   "symbol": "PTC",
+   "subject": "Dividend - Rs 5.50 Per Share",
+   "exDate": "07-Oct-2026"
+  },
+  {
+   "symbol": "BHAGYANGR",
+   "subject": "Demerger",
+   "exDate": "08-Oct-2026"
+  },
+  {
+   "symbol": "BUILDPRO",
+   "subject": "Face Value Split (Sub-Division) - From Rs 10/- Per Share To Rs 2/- Per Share",
+   "exDate": "08-Oct-2026"
+  }
+ ],
+ "nextSession": "Mon 5 Oct 2026"
+}
