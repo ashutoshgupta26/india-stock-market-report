@@ -1,0 +1,50 @@
+name: Market clock (5-minute updates)
+
+# GitHub often delays or skips frequent cron runs on small repos. Instead, one
+# long-running job keeps time during market hours and starts the update
+# workflow every 5 minutes. Several start times are listed so that if one is
+# skipped, the next one picks up; only one clock runs at a time.
+on:
+  schedule:
+    # UTC times = IST 08:55, 09:15, 10:00, 11:30, 13:30, 14:30 (Mon-Fri)
+    - cron: "25 3 * * 1-5"
+    - cron: "45 3 * * 1-5"
+    - cron: "30 4 * * 1-5"
+    - cron: "0 6 * * 1-5"
+    - cron: "0 8 * * 1-5"
+    - cron: "0 9 * * 1-5"
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: market-clock
+  cancel-in-progress: false
+
+jobs:
+  clock:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    steps:
+      - name: Start an update every 5 minutes until market close (IST 15:45)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          start=$(date +%s)
+          while :; do
+            now=$(date -u +%s)
+            close=$(date -u -d "$(date -u +%F) 10:16" +%s)
+            dow=$(date -u +%u)
+            [ "$dow" -le 5 ] || { echo "Weekend, stopping"; break; }
+            [ "$now" -lt "$close" ] || { echo "Market closed, stopping"; break; }
+            [ $((now - start)) -lt 20700 ] || { echo "Time limit reached, next clock takes over"; break; }
+            open=$(date -u -d "$(date -u +%F) 03:30" +%s)
+            if [ "$now" -ge "$open" ]; then
+              echo "$(date -u +%T) UTC: starting update"
+              gh workflow run update.yml --ref main || echo "Could not start update, will retry"
+            fi
+            sleep $(( 300 - $(date -u +%s) % 300 ))
+          done
