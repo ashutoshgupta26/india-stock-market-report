@@ -1,10 +1,6 @@
 name: Update prices and news
 
 on:
-  schedule:
-    # Outside market hours: news every hour (IST ~06:30-23:30, every day)
-    - cron: "0 1-2,11-18 * * *"
-    - cron: "0 3-10 * * 0,6"
   push:
     branches: [main]
   workflow_dispatch:
