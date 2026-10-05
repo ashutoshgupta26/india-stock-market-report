@@ -569,18 +569,25 @@ function getStatic(){
 function getData(){
   // Give the live feed 20 s, then show the last saved report
   return Promise.race([fetch(LIVE),new Promise(function(_,no){setTimeout(function(){no(new Error('slow'))},20000)})]).then(function(r){if(!r.ok)throw new Error(r.status);return r.json()})
-  .then(function(j){if(!j||!j.ok||!j.data||!j.data.indices)throw new Error('no live feed');return [j.data,j.news||{}]})
+  .then(function(j){if(!j||!j.ok||!j.data||!j.data.indices)throw new Error('no live feed');var res=[j.data,j.news||{}];try{localStorage.setItem(KEY,JSON.stringify(res))}catch(e){}return res})
   .catch(getStatic);
+}
+var KEY='gw-last-'+LIVE.split('feed=')[1];
+function show(res){var changed=!D||JSON.stringify(res)!==JSON.stringify([D,N]);D=res[0];N=res[1]||{};if(changed){var y=scrollY;render();scrollTo(0,y)}else renderStatus()}
+// Show the last copy straight away; the live feed swaps in when it lands
+function quick(){
+  try{var c=JSON.parse(localStorage.getItem(KEY));if(c&&c[0]&&c[0].indices){show(c);return}}catch(e){}
+  getStatic().then(function(res){if(!D)show(res)}).catch(function(){});
 }
 function load(){
   clearTimeout(timer);
   getData()
-  .then(function(res){var changed=!D||JSON.stringify(res)!==JSON.stringify([D,N]);D=res[0];N=res[1]||{};if(changed){var y=scrollY;render();scrollTo(0,y)}else renderStatus()})
+  .then(show)
   .catch(function(){if(!D){$('#loading').className='err';$('#loading').textContent='Could not load market data. Please refresh in a minute.'}})
   .then(function(){var open=D&&D.market&&D.market.status==='open';timer=setTimeout(load,open?60000:300000)});
 }
 document.addEventListener('visibilitychange',function(){if(!document.hidden&&D)load()});
-load();
+quick();load();
 })();
 </script>
 </body>
