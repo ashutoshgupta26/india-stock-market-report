@@ -106,11 +106,32 @@ const finNews = pick(feeds.fin, 6, seen);
 const ipoNews = pick(feeds.ipo, 3, seen);
 const earnings = pick(feeds.results, 5, seen);
 
-const [fiiRaw, ipoRaw, caRaw, holRaw] = [await nse('fiidiiTradeReact'), await nse('ipo-current-issue'), await nse('corporates-corporateActions?index=equities'), await nse('holiday-master?type=trading')];
-const fiidii = Array.isArray(fiiRaw) && fiiRaw.length
-  ? fiiRaw.map((r) => ({ cat: r.category, date: r.date, buy: +r.buyValue, sell: +r.sellValue, net: +r.netValue })) : (errors.push('nse fii/dii'), prev.fiidii ?? []);
-const ipos = Array.isArray(ipoRaw)
-  ? ipoRaw.map((i) => ({ name: i.companyName, price: i.issuePrice, open: i.issueStartDate, close: i.issueEndDate, subs: i.noOfTime != null ? +i.noOfTime : null })) : (errors.push('nse ipo'), prev.ipos ?? []);
+// FII/DII from Moneycontrol and open IPOs from Groww (NSE does not answer cloud servers); NSE stays for corporate actions and holidays
+const MC = 'https://www.moneycontrol.com/markets/fii-dii-data/', GROWW = 'https://groww.in/v1/api/primaries/v1/ipo/open';
+async function mcFii() {
+  try {
+    const r = await get(MC, { headers: { Accept: 'text/html' } }, 2); if (!r) return null;
+    const m = (await r.text()).match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
+    const a = m && JSON.parse(m[1])?.props?.pageProps?.FiiDiiData?.fiiDiiData;
+    if (!Array.isArray(a) || !a.length) return null;
+    const num = (x) => +String(x).replace(/,/g, ''), d = a[0];
+    const [y, mo, da] = String(d.date).split('-');
+    const date = `${da}-${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][+mo - 1]}-${y}`;
+    return [{ cat: 'FII/FPI', date, buy: null, sell: null, net: num(d.fiiCM) }, { cat: 'DII', date, buy: null, sell: null, net: num(d.diiCM) }].filter((x) => isFinite(x.net));
+  } catch { return null; }
+}
+async function growwIpo() {
+  try {
+    const r = await get(GROWW, { headers: { Accept: 'application/json' } }, 2); if (!r) return null;
+    const list = (await r.json())?.ipoList; if (!Array.isArray(list)) return null;
+    const dt = (ms) => { const d = new Date(ms + 5.5 * 3600e3); return `${String(d.getUTCDate()).padStart(2, '0')}-${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getUTCMonth()]}-${d.getUTCFullYear()}`; };
+    return list.map((i) => { const c = (i.categories ?? [])[0] ?? {};
+      return { name: i.companyName + (i.isSme ? ' (SME)' : ''), price: c.maxPrice ? (c.minPrice && c.minPrice !== c.maxPrice ? `₹${c.minPrice}–${c.maxPrice}` : `₹${c.maxPrice}`) : '', open: i.bidStartTimestamp ? dt(i.bidStartTimestamp) : '', close: i.bidEndTimestamp ? dt(i.bidEndTimestamp) : '', subs: i.overallSubscription != null ? +i.overallSubscription : null }; });
+  } catch { return null; }
+}
+const [fiiRaw, ipoRaw, caRaw, holRaw] = [await mcFii(), await growwIpo(), await nse('corporates-corporateActions?index=equities'), await nse('holiday-master?type=trading')];
+const fiidii = fiiRaw?.length ? fiiRaw : (errors.push('fii/dii'), prev.fiidii ?? []);
+const ipos = Array.isArray(ipoRaw) ? ipoRaw : (errors.push('ipo'), prev.ipos ?? []);
 
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const istNow = new Date(Date.now() + 5.5 * 3600e3);
