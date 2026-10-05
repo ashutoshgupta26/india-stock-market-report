@@ -560,10 +560,20 @@ function render(){
   showTab(location.hash.slice(1)||'overview');flashChanges();
   var bx=$('#chart');if(bx){ro.disconnect();ro.observe(bx)}
 }
+// Live prices and news straight from the backend; the static files are a fallback
+var LIVE='https://script.google.com/macros/s/AKfycbx4WPv9Dn49oAjArGFEVH81PhjVj46yMt57rVxS4T6sc-xnmNer85vDHuclttPzMtAp2g/exec'+'?feed=india';
+function getStatic(){
+  return Promise.all([fetch('data.json',{cache:'no-cache'}).then(function(r){if(!r.ok)throw new Error(r.status);return r.json()}),
+                     fetch('news.json',{cache:'no-cache'}).then(function(r){return r.ok?r.json():{}}).catch(function(){return {}})]);
+}
+function getData(){
+  return fetch(LIVE).then(function(r){if(!r.ok)throw new Error(r.status);return r.json()})
+  .then(function(j){if(!j||!j.ok||!j.data||!j.data.indices)throw new Error('no live feed');return [j.data,j.news||{}]})
+  .catch(getStatic);
+}
 function load(){
   clearTimeout(timer);
-  Promise.all([fetch('data.json',{cache:'no-cache'}).then(function(r){if(!r.ok)throw new Error(r.status);return r.json()}),
-               fetch('news.json',{cache:'no-cache'}).then(function(r){return r.ok?r.json():{}}).catch(function(){return {}})])
+  getData()
   .then(function(res){var changed=!D||JSON.stringify(res)!==JSON.stringify([D,N]);D=res[0];N=res[1]||{};if(changed){var y=scrollY;render();scrollTo(0,y)}else renderStatus()})
   .catch(function(){if(!D){$('#loading').className='err';$('#loading').textContent='Could not load market data. Please refresh in a minute.'}})
   .then(function(){var open=D&&D.market&&D.market.status==='open';timer=setTimeout(load,open?60000:300000)});
