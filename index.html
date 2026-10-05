@@ -136,6 +136,7 @@ main{padding:18px 0 28px}
 .row{display:grid;grid-template-columns:minmax(0,1fr) auto 72px;align-items:center;gap:10px;padding:7px 6px;border-radius:8px}
 .row:hover{background:var(--card-2)}
 .row .nm b{font-weight:650;font-size:14px}
+.row .nm .fn,td.sym .fn{display:block;font-size:12px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px}
 .row .nm .why{display:block;font-size:12px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .row .px{font-size:13px;color:var(--ink-2)}
 .row .pc{font-size:13px;font-weight:650;text-align:right;padding:3px 6px;border-radius:6px}
@@ -368,7 +369,7 @@ function renderStatus(){
 function stat(i,label){if(!i)return '';return '<div class="hs"'+tipAttr([i.name,'Prev close '+nf(i.prev),'Day range '+nf(i.low)+' – '+nf(i.high)])+'><div class="l">'+esc(label)+'</div><div class="v">'+K('hs-'+i.name,i.last,nf(i.last,i.last>999?2:2))+'</div><div class="d num '+cls(i.pct)+'">'+chg(i.chg)+' ('+pct(i.pct)+')</div></div>'}
 function moverRows(list,n){
   return '<ul class="rows">'+list.slice(0,n).map(function(s){var r=reasonFor(s.symbol),c=cls(s.pct);
-    return '<li class="row"'+tipAttr([s.symbol+(s.name?' · '+s.name:''),'LTP ₹'+nf(s.ltp)+' ('+chg(s.chg)+')','Day range ₹'+nf(s.low)+' – ₹'+nf(s.high),s.valueCr?'Traded value ₹'+nf(s.valueCr,0)+' Cr':'',r?'Why: '+rs(r):''])+'><div class="nm"><b>'+esc(s.symbol)+'</b>'+(r?'<span class="why">'+t(r)+'</span>':'')+'</div><span class="px num">'+K('px-'+s.symbol,s.ltp,'₹'+nf(s.ltp))+'</span><span class="pc num '+c+'">'+pct(s.pct)+'</span></li>'}).join('')+'</ul>';
+    return '<li class="row"'+tipAttr([s.symbol+(s.name?' · '+s.name:''),'LTP ₹'+nf(s.ltp)+' ('+chg(s.chg)+')','Day range ₹'+nf(s.low)+' – ₹'+nf(s.high),s.valueCr?'Traded value ₹'+nf(s.valueCr,0)+' Cr':'',r?'Why: '+rs(r):''])+'><div class="nm"><b>'+esc(s.symbol)+'</b>'+(s.name?'<span class="fn">'+esc(s.name)+'</span>':'')+(r?'<span class="why">'+t(r)+'</span>':'')+'</div><span class="px num">'+K('px-'+s.symbol,s.ltp,'₹'+nf(s.ltp))+'</span><span class="pc num '+c+'">'+pct(s.pct)+'</span></li>'}).join('')+'</ul>';
 }
 function renderOverview(){
   var n50=idx('NIFTY 50'),sx=idx('SENSEX'),bn=idx('NIFTY BANK'),vix=idx('INDIA VIX');
@@ -473,7 +474,7 @@ function stockTable(id,title,sub,list,defKey,defDir,opts){
   if(opts.limit)rows=rows.slice(0,opts.limit);
   var head='<tr>'+th(id,'symbol','Stock',false,defKey,defDir)+th(id,'ltp','LTP ₹',true,defKey,defDir)+th(id,'pct','Change',true,defKey,defDir)+(opts.value?th(id,'valueCr','Value ₹ Cr',true,defKey,defDir):'')+(opts.why?'<th>Why it moved</th>':'')+'</tr>';
   var body=rows.map(function(s){var r=opts.why?(opts.reason?opts.reason(s):reasonFor(s.symbol)):null;
-    return '<tr'+tipAttr([s.symbol+(s.name?' · '+s.name:''),'Prev close ₹'+nf(s.prev),'Day range ₹'+nf(s.low)+' – ₹'+nf(s.high),s.hi52?'52-week range ₹'+nf(s.lo52)+' – ₹'+nf(s.hi52):'',s.valueCr?'Traded value ₹'+nf(s.valueCr,0)+' Cr':''])+'><td class="sym"><b>'+esc(s.symbol)+'</b>'+(s.name&&opts.names?'<div style="font-size:12px;color:var(--ink-3)">'+esc(s.name)+'</div>':'')+'</td><td class="r">'+K(id+'-'+s.symbol,s.ltp,nf(s.ltp))+'</td><td class="r"><span class="badge num '+cls(s.pct)+'">'+pct(s.pct)+'</span></td>'+(opts.value?'<td class="r num">'+nf(s.valueCr,0)+'</td>':'')+(opts.why?'<td class="why">'+(r?t(r):'–')+'</td>':'')+'</tr>'}).join('');
+    return '<tr'+tipAttr([s.symbol+(s.name?' · '+s.name:''),'Prev close ₹'+nf(s.prev),'Day range ₹'+nf(s.low)+' – ₹'+nf(s.high),s.hi52?'52-week range ₹'+nf(s.lo52)+' – ₹'+nf(s.hi52):'',s.valueCr?'Traded value ₹'+nf(s.valueCr,0)+' Cr':''])+'><td class="sym"><b>'+esc(s.symbol)+'</b>'+(s.name?'<div class="fn">'+esc(s.name)+'</div>':'')+'</td><td class="r">'+K(id+'-'+s.symbol,s.ltp,nf(s.ltp))+'</td><td class="r"><span class="badge num '+cls(s.pct)+'">'+pct(s.pct)+'</span></td>'+(opts.value?'<td class="r num">'+nf(s.valueCr,0)+'</td>':'')+(opts.why?'<td class="why">'+(r?t(r):'–')+'</td>':'')+'</tr>'}).join('');
   return '<div class="card'+(opts.cls?' '+opts.cls:'')+'"><h2>'+esc(title)+(sub?' <span class="sub">'+esc(sub)+'</span>':'')+'</h2><div class="tbl-wrap"><table><thead>'+head+'</thead><tbody>'+(body||'<tr><td colspan="5" class="empty">No stocks match this filter.</td></tr>')+'</tbody></table></div></div>';
 }
 function renderStocks(){
@@ -520,7 +521,7 @@ function renderNews(){
   var ipos=N.ipos||[];
   h+='<div class="grid g-2"><div class="card reveal"><h2>IPO update</h2>'+(N.ipoNote?'<p style="color:var(--ink-2);font-size:14px;margin-bottom:10px">'+t(N.ipoNote)+'</p>':'')+
     (ipos.length?'<div class="tbl-wrap"><table><thead><tr><th>Issue</th><th>Price band</th><th>Closes</th><th class="r">Subscribed</th></tr></thead><tbody>'+ipos.map(function(i){return '<tr><td><b>'+esc(i.name)+'</b></td><td class="num">'+t(i.price||'–')+'</td><td class="num">'+esc((i.close||'').slice(0,6))+'</td><td class="r num">'+(i.subs!=null?nf(i.subs)+'x':'–')+'</td></tr>'}).join('')+'</tbody></table></div><div class="note">Subscription as of the report time.</div>':'')+'</div>'+
-    '<div class="card reveal"><h2>Earnings &amp; corporate actions</h2>'+list(N.earnings)+((N.corpActions||[]).length?'<div class="tbl-wrap" style="margin-top:8px"><table><thead><tr><th>Stock</th><th>Action</th><th>Ex-date</th></tr></thead><tbody>'+N.corpActions.map(function(c){return '<tr><td><b>'+esc(c.symbol)+'</b></td><td>'+t(c.subject)+'</td><td class="num" style="white-space:nowrap">'+esc((c.exDate||'').slice(0,6))+'</td></tr>'}).join('')+'</tbody></table></div>':'')+'</div></div>';
+    '<div class="card reveal"><h2>Earnings &amp; corporate actions</h2>'+list(N.earnings)+((N.corpActions||[]).length?'<div class="tbl-wrap" style="margin-top:8px"><table><thead><tr><th>Stock</th><th>Action</th><th>Ex-date</th></tr></thead><tbody>'+N.corpActions.map(function(c){return '<tr><td><b>'+esc(c.symbol)+'</b>'+((stock(c.symbol)||{}).name?'<div class="fn">'+esc(stock(c.symbol).name)+'</div>':'')+'</td><td>'+t(c.subject)+'</td><td class="num" style="white-space:nowrap">'+esc((c.exDate||'').slice(0,6))+'</td></tr>'}).join('')+'</tbody></table></div>':'')+'</div></div>';
   var an=N.analyst||[];
   if(an.length)h+='<div class="card reveal"><h2>Analyst views</h2><div class="tbl-wrap"><table><thead><tr><th>Stock</th><th>View</th><th>Target / theme</th><th>Broker</th></tr></thead><tbody>'+an.map(function(a){if(typeof a==='string'||a.title)return '<tr><td colspan="4">'+item(a)+'</td></tr>';
     return '<tr><td><b>'+t(a.stock)+'</b></td><td><span class="badge '+(/sell|under|reduce/i.test(a.view)?'dn':'up')+'">'+t(a.view)+'</span></td><td class="num">'+t(a.target)+'</td><td>'+t(a.broker)+'</td></tr>'}).join('')+'</tbody></table></div><div class="note">Brokerage and analyst calls as reported in the news; not recommendations.</div></div>';
