@@ -107,7 +107,7 @@ const ipoNews = pick(feeds.ipo, 3, seen);
 const earnings = pick(feeds.results, 5, seen);
 
 // FII/DII from Moneycontrol and open IPOs from Groww (NSE does not answer cloud servers); NSE stays for corporate actions and holidays
-const MC = 'https://www.moneycontrol.com/markets/fii-dii-data/', GROWW = 'https://groww.in/v1/api/primaries/v1/ipo/open';
+const MC = 'https://www.moneycontrol.com/markets/fii-dii-data/', TL = 'https://trendlyne.com/macro-data/fii-dii/latest/cash-pastmonth/', GROWW = 'https://groww.in/v1/api/primaries/v1/ipo/open';
 async function mcFii() {
   try {
     const r = await get(MC, { headers: { Accept: 'text/html' } }, 2); if (!r) return null;
@@ -120,6 +120,21 @@ async function mcFii() {
     return [{ cat: 'FII/FPI', date, buy: null, sell: null, net: num(d.fiiCM) }, { cat: 'DII', date, buy: null, sell: null, net: num(d.diiCM) }].filter((x) => isFinite(x.net));
   } catch { return null; }
 }
+// Backup for FII/DII: Trendlyne's summary lines ("FII were net sellers of ₹-9484.22 Cr in the cash segment on 01 Oct 2026")
+async function tlFii() {
+  try {
+    const r = await get(TL, { headers: { Accept: 'text/html' } }, 2); if (!r) return null;
+    const html = (await r.text()).replace(/\s+/g, ' ');
+    const one = (who, cat) => {
+      const m = html.match(new RegExp(who + ' were net (buyers|sellers) of ₹ ?(-?[\\d.,]+) Cr in the cash segment on (\\d{1,2}) (\\w{3}) (\\d{4})'));
+      if (!m) return null;
+      const v = Math.abs(+m[2].replace(/,/g, ''));
+      return { cat, date: `${m[3].padStart(2, '0')}-${m[4]}-${m[5]}`, buy: null, sell: null, net: m[1] === 'sellers' ? -v : v };
+    };
+    const out = [one('FII', 'FII/FPI'), one('DII', 'DII')].filter((x) => x && isFinite(x.net));
+    return out.length ? out : null;
+  } catch { return null; }
+}
 async function growwIpo() {
   try {
     const r = await get(GROWW, { headers: { Accept: 'application/json' } }, 2); if (!r) return null;
@@ -129,7 +144,7 @@ async function growwIpo() {
       return { name: i.companyName + (i.isSme ? ' (SME)' : ''), price: c.maxPrice ? (c.minPrice && c.minPrice !== c.maxPrice ? `₹${c.minPrice}–${c.maxPrice}` : `₹${c.maxPrice}`) : '', open: i.bidStartTimestamp ? dt(i.bidStartTimestamp) : '', close: i.bidEndTimestamp ? dt(i.bidEndTimestamp) : '', subs: i.overallSubscription != null ? +i.overallSubscription : null }; });
   } catch { return null; }
 }
-const [fiiRaw, ipoRaw, caRaw, holRaw] = [await mcFii(), await growwIpo(), await nse('corporates-corporateActions?index=equities'), await nse('holiday-master?type=trading')];
+const [fiiRaw, ipoRaw, caRaw, holRaw] = [(await mcFii()) ?? (await tlFii()), await growwIpo(), await nse('corporates-corporateActions?index=equities'), await nse('holiday-master?type=trading')];
 const fiidii = fiiRaw?.length ? fiiRaw : (errors.push('fii/dii'), prev.fiidii ?? []);
 const ipos = Array.isArray(ipoRaw) ? ipoRaw : (errors.push('ipo'), prev.ipos ?? []);
 
