@@ -567,7 +567,8 @@ function getStatic(){
                      fetch('news.json',{cache:'no-cache'}).then(function(r){return r.ok?r.json():{}}).catch(function(){return {}})]);
 }
 function getData(){
-  return fetch(LIVE).then(function(r){if(!r.ok)throw new Error(r.status);return r.json()})
+  // Give the live feed 20 s, then show the last saved report
+  return Promise.race([fetch(LIVE),new Promise(function(_,no){setTimeout(function(){no(new Error('slow'))},20000)})]).then(function(r){if(!r.ok)throw new Error(r.status);return r.json()})
   .then(function(j){if(!j||!j.ok||!j.data||!j.data.indices)throw new Error('no live feed');return [j.data,j.news||{}]})
   .catch(getStatic);
 }
