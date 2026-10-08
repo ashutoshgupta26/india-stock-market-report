@@ -106,8 +106,8 @@ const finNews = pick(feeds.fin, 6, seen);
 const ipoNews = pick(feeds.ipo, 3, seen);
 const earnings = pick(feeds.results, 5, seen);
 
-// FII/DII from Moneycontrol and open IPOs from Groww (NSE does not answer cloud servers); NSE stays for corporate actions and holidays
-const MC = 'https://www.moneycontrol.com/markets/fii-dii-data/', TL = 'https://trendlyne.com/macro-data/fii-dii/latest/cash-pastmonth/', GROWW = 'https://groww.in/v1/api/primaries/v1/ipo/open';
+// FII/DII from Moneycontrol (NSE does not answer cloud servers); NSE stays for holidays
+const MC = 'https://www.moneycontrol.com/markets/fii-dii-data/', TL = 'https://trendlyne.com/macro-data/fii-dii/latest/cash-pastmonth/';
 async function mcFii() {
   try {
     const r = await get(MC, { headers: { Accept: 'text/html' } }, 2); if (!r) return null;
@@ -135,28 +135,141 @@ async function tlFii() {
     return out.length ? out : null;
   } catch { return null; }
 }
-async function growwIpo() {
-  try {
-    const r = await get(GROWW, { headers: { Accept: 'application/json' } }, 2); if (!r) return null;
-    const list = (await r.json())?.ipoList; if (!Array.isArray(list)) return null;
-    const dt = (ms) => { const d = new Date(ms + 5.5 * 3600e3); return `${String(d.getUTCDate()).padStart(2, '0')}-${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getUTCMonth()]}-${d.getUTCFullYear()}`; };
-    return list.map((i) => { const c = (i.categories ?? [])[0] ?? {};
-      return { name: i.companyName + (i.isSme ? ' (SME)' : ''), price: c.maxPrice ? (c.minPrice && c.minPrice !== c.maxPrice ? `₹${c.minPrice}–${c.maxPrice}` : `₹${c.maxPrice}`) : '', open: i.bidStartTimestamp ? dt(i.bidStartTimestamp) : '', close: i.bidEndTimestamp ? dt(i.bidEndTimestamp) : '', subs: i.overallSubscription != null ? +i.overallSubscription : null }; });
-  } catch { return null; }
-}
-const [fiiRaw, ipoRaw, caRaw, holRaw] = [(await mcFii()) ?? (await tlFii()), await growwIpo(), await nse('corporates-corporateActions?index=equities'), await nse('holiday-master?type=trading')];
+const [fiiRaw, holRaw] = [(await mcFii()) ?? (await tlFii()), await nse('holiday-master?type=trading')];
 const fiidii = fiiRaw?.length ? fiiRaw : (errors.push('fii/dii'), prev.fiidii ?? []);
-const ipos = Array.isArray(ipoRaw) ? ipoRaw : (errors.push('ipo'), prev.ipos ?? []);
 
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const istNow = new Date(Date.now() + 5.5 * 3600e3);
 const dayStart = (d) => Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
 const parseNse = (s) => Date.parse(String(s).replace(/-/g, ' ') + ' UTC');
 const today0 = dayStart(istNow);
-const corpActions = Array.isArray(caRaw)
-  ? caRaw.filter((c) => { const t = parseNse(c.exDate); return t >= today0 && t <= today0 + 7 * 864e5; }).slice(0, 12).map((c) => ({ symbol: c.symbol, subject: c.subject, exDate: c.exDate }))
-  : (errors.push('nse corp actions'), (prev.corpActions ?? []).filter((c) => parseNse(c.exDate) >= today0));
 const holidays = new Set((holRaw?.CM ?? []).map((h) => h.tradingDate));
+
+// ---------- IPOs from Groww: open now, upcoming, allotment/listing soon, recently listed ----------
+const GIPO = 'https://groww.in/v1/api/primaries/v1/ipo/', GROWW = GIPO + 'open';
+const MO3 = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const dmy = (ms) => { if (!ms && ms !== 0) return ''; const d = new Date(ms + 5.5 * 3600e3); return `${String(d.getUTCDate()).padStart(2, '0')}-${MO3[d.getUTCMonth()]}-${d.getUTCFullYear()}`; };
+const isoDmy = (s) => { const t = s ? Date.parse(String(s).slice(0, 10) + 'T00:00:00+05:30') : NaN; return isFinite(t) ? dmy(t) : ''; };
+const isoMs = (s) => { const t = s ? Date.parse(String(s).slice(0, 10) + 'T00:00:00+05:30') : NaN; return isFinite(t) ? t : null; };
+async function gList(kind) {
+  try { const r = await get(GIPO + kind, { headers: { Accept: 'application/json' } }, 2); const l = r ? (await r.json())?.ipoList : null; return Array.isArray(l) ? l : null; } catch { return null; }
+}
+// Full issue details from the IPO's own Groww page
+async function gPage(id) {
+  try {
+    const r = await get('https://groww.in/ipo/' + id, { headers: { Accept: 'text/html' } }, 1); if (!r) return null;
+    const m = (await r.text()).match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
+    return m ? JSON.parse(m[1])?.props?.pageProps?.ipoData ?? null : null;
+  } catch { return null; }
+}
+const rnd = (x, d = 2) => x == null || !isFinite(x) ? null : Math.round(x * 10 ** d) / 10 ** d;
+function ipoRow(i, d) {
+  d = d ?? {};
+  const cats = d.categories ?? i.categories ?? [];
+  const c = cats.find((x) => /^IND/.test(x.category)) ?? cats[0] ?? {};
+  const lo = d.minPrice ?? c.minPrice ?? null, hi = d.maxPrice ?? c.maxPrice ?? i.issuePrice ?? null;
+  const qty = d.minBidQty ?? c.minBidQuantity ?? d.lotSize ?? c.lotSize ?? null;
+  const subs = {}; for (const s of d.subscriptionRates ?? []) subs[String(s.category).toLowerCase()] = rnd(s.subscriptionRate);
+  const fin = {}; for (const f of d.financials ?? []) { const y = Object.keys(f.yearly ?? {}).sort(); if (y.length) fin[f.title] = { year: 'FY' + y.at(-1).slice(2), v: f.yearly[y.at(-1)], prev: y.length > 1 ? f.yearly[y.at(-2)] : null }; }
+  const rev = fin.Revenue, pat = fin.Profit;
+  return {
+    name: (d.companyShortName ?? i.companyName ?? '').trim() + ((d.isSme ?? i.isSme) ? ' (SME)' : ''),
+    sme: !!(d.isSme ?? i.isSme), sector: d.sector ?? '',
+    price: hi ? (lo && lo !== hi ? `₹${lo}–${hi}` : `₹${hi}`) : '',
+    lot: d.lotSize ?? c.lotSize ?? null, minInv: qty && hi ? Math.round(qty * hi) : null,
+    sizeCr: d.issueSize ? rnd(d.issueSize / 1e7, 1) : null,
+    open: d.startDate ? isoDmy(d.startDate) : i.bidStartTimestamp ? dmy(i.bidStartTimestamp) : isoDmy(i.openingDate),
+    close: d.endDate ? isoDmy(d.endDate) : i.bidEndTimestamp ? dmy(i.bidEndTimestamp) : isoDmy(i.closingDate),
+    allot: isoDmy(d.allotmentDate ?? i.allotmentDate), listDate: d.listingDate ? isoDmy(d.listingDate) : i.listingTimestamp ? dmy(i.listingTimestamp) : '',
+    subs: i.overallSubscription != null ? rnd(+i.overallSubscription) : subs.total ?? null,
+    subsQib: subs.qib ?? null, subsNii: subs.nii ?? null, subsRetail: subs.retail ?? subs.ind ?? null,
+    revCr: rev ? rnd(rev.v, 1) : null, revGrowth: rev && rev.prev ? rnd((rev.v / rev.prev - 1) * 100, 1) : null,
+    patCr: pat ? rnd(pat.v, 1) : null, finYear: rev ? rev.year : pat ? pat.year : '',
+    url: (d.symbol || i.searchId) ? 'https://groww.in/ipo/' + (i.searchId ?? '') : '',
+  };
+}
+typeof prefetch === 'function' && prefetch(['open', 'upcoming', 'closed'].map((k) => [GIPO + k, { headers: { 'User-Agent': UA, Accept: 'application/json' } }]));
+const [gOpen, gUp, gClosed] = [await gList('open'), await gList('upcoming'), await gList('closed')];
+const now0 = Date.now();
+const upDated = (gUp ?? []).filter((i) => i.bidStartTimestamp).sort((a, b) => a.bidStartTimestamp - b.bidStartTimestamp);
+const detailIds = [...(gOpen ?? []), ...upDated].map((i) => i.searchId).filter(Boolean).slice(0, 10);
+typeof prefetch === 'function' && prefetch(detailIds.map((id) => ['https://groww.in/ipo/' + id, { headers: { 'User-Agent': UA, Accept: 'text/html' } }]));
+const pages = {}; for (const id of detailIds) pages[id] = await gPage(id);
+const ipos = Array.isArray(gOpen) ? gOpen.map((i) => ipoRow(i, pages[i.searchId])) : (errors.push('ipo'), prev.ipos ?? []);
+const ipoUpcoming = gUp ? upDated.map((i) => ipoRow(i, pages[i.searchId])) : (prev.ipoUpcoming ?? []);
+const ipoPipeline = gUp ? gUp.filter((i) => !i.bidStartTimestamp).map((i) => i.companyName.trim()).slice(0, 12) : (prev.ipoPipeline ?? []);
+const closed = gClosed ?? [];
+const ipoAllot = gClosed ? closed.filter((i) => !i.isListed && (i.listingTimestamp ?? 0) >= now0 - 864e5).sort((a, b) => (a.listingTimestamp ?? 0) - (b.listingTimestamp ?? 0)).slice(0, 10)
+  .map((i) => ({ name: i.companyName.trim() + (i.isSme ? ' (SME)' : ''), sme: !!i.isSme, issuePrice: i.issuePrice ?? null, subs: i.overallSubscription != null ? rnd(+i.overallSubscription) : null, close: isoDmy(i.closingDate), allot: isoDmy(i.allotmentDate), listDate: i.listingTimestamp ? dmy(i.listingTimestamp) : '', url: 'https://groww.in/ipo/' + i.searchId }))
+  : (prev.ipoAllot ?? []);
+const ipoListed = gClosed ? closed.filter((i) => i.isListed && i.listingPrice != null && (i.listingTimestamp ?? 0) >= now0 - 15 * 864e5).sort((a, b) => (b.listingTimestamp ?? 0) - (a.listingTimestamp ?? 0)).slice(0, 12)
+  .map((i) => ({ name: i.companyName.trim() + (i.isSme ? ' (SME)' : ''), sme: !!i.isSme, issuePrice: i.issuePrice ?? null, listPrice: i.listingPrice, gain: i.listingReturn != null ? rnd(+i.listingReturn) : (i.issuePrice ? rnd((i.listingPrice / i.issuePrice - 1) * 100) : null), subs: i.overallSubscription != null ? rnd(+i.overallSubscription) : null, listDate: i.listingTimestamp ? dmy(i.listingTimestamp) : '', url: 'https://groww.in/ipo/' + i.searchId }))
+  : (prev.ipoListed ?? []);
+if (!gUp || !gClosed) errors.push('ipo lists');
+
+// ---------- Dividends, bonus, splits, rights and dividend board meetings: Moneycontrol ----------
+const MCCA = 'https://www.moneycontrol.com/markets/corporate-action/';
+const CA_PAGES = { div: 'dividends_declared/', bonus: 'bonus/', split: 'splits/', rights: 'rights/', meet: 'board-meetings/' };
+async function mcList(path) {
+  try {
+    const r = await get(MCCA + path, { headers: { Accept: 'text/html' } }, 2); if (!r) return null;
+    const m = (await r.text()).match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
+    const l = m ? JSON.parse(m[1])?.props?.pageProps?.data?.filteredList : null;
+    return Array.isArray(l) ? l : null;
+  } catch { return null; }
+}
+const mcHist = (scId) => `https://api.moneycontrol.com/mcapi/v1/stock/corporate-action?deviceType=W&scId=${encodeURIComponent(scId)}&section=d&page=1&appVersion=161`;
+async function mcDivHist(scId) {
+  try { const r = await get(mcHist(scId), { headers: { Accept: 'application/json' } }, 1); const l = r ? (await r.json())?.data?.dividends : null; return Array.isArray(l) ? l : null; } catch { return null; }
+}
+const dmyMs = (s) => { const m = String(s ?? '').match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/); return m ? Date.UTC(+m[3], +m[2] - 1, +m[1]) : null; };
+const dmyTxt = (t) => t == null ? '' : `${String(new Date(t).getUTCDate()).padStart(2, '0')}-${MO3[new Date(t).getUTCMonth()]}-${new Date(t).getUTCFullYear()}`;
+const numv = (x) => { const v = parseFloat(String(x ?? '').replace(/,/g, '')); return isFinite(v) ? v : null; };
+typeof prefetch === 'function' && prefetch(Object.values(CA_PAGES).map((p) => [MCCA + p, { headers: { 'User-Agent': UA, Accept: 'text/html' } }]));
+const ca = {}; for (const [k, p] of Object.entries(CA_PAGES)) ca[k] = await mcList(p);
+const istDay0 = Date.UTC(new Date(now0 + 5.5 * 3600e3).getUTCFullYear(), new Date(now0 + 5.5 * 3600e3).getUTCMonth(), new Date(now0 + 5.5 * 3600e3).getUTCDate());
+const soon = (t) => t != null && t >= istDay0 && t <= istDay0 + 30 * 864e5;
+let dividends = prev.dividends ?? [];
+if (ca.div) {
+  const rows = ca.div.map((x) => ({ x, t: dmyMs(x.exDate) })).filter((r) => soon(r.t)).sort((a, b) => a.t - b.t || (b.x.marketCap ?? 0) - (a.x.marketCap ?? 0)).slice(0, 15);
+  const ids = rows.map((r) => r.x.scId).filter(Boolean).slice(0, 12);
+  typeof prefetch === 'function' && prefetch(ids.map((id) => [mcHist(id), { headers: { 'User-Agent': UA, Accept: 'application/json' } }]));
+  const hist = {}; for (const id of ids) hist[id] = await mcDivHist(id);
+  dividends = rows.map(({ x, t }) => {
+    const h = hist[x.scId] ?? [], price = numv(x.lastValue);
+    const hd = (e) => Date.parse(e.announce_date + 'T00:00:00Z');
+    let amt = numv(x.dividend);
+    const cur = h.find((e) => String(e.effective_date ?? '').replace(/,/g, '') && Date.parse(String(e.effective_date).replace(',', '') + ' UTC') === t);
+    if (!amt && cur && +cur.dividend_amount > 0) amt = +cur.dividend_amount;
+    const yr = h.filter((e) => +e.dividend_amount > 0 && hd(e) > now0 - 365 * 864e5);
+    const ttm = yr.length ? rnd(yr.reduce((s, e) => s + +e.dividend_amount, 0)) : null;
+    const last = h.find((e) => +e.dividend_amount > 0);
+    return {
+      name: String(x.stockName).trim(), type: String(x.eventType ?? '').replace(/^Dividend\s*-\s*/, '') || 'Dividend',
+      exDate: dmyTxt(t), annDate: dmyTxt(dmyMs(x.announcementDate)), amount: amt || null, price,
+      pctChg: numv(x.perChange), yieldPct: amt && price ? rnd(amt / price * 100) : null,
+      ttm, ttmYield: ttm && price ? rnd(ttm / price * 100) : null, count12m: yr.length || null,
+      lastAmt: last ? +last.dividend_amount : null, lastDate: last ? String(last.effective_date ?? '') : '',
+      mcapCr: x.marketCap ? Math.round(x.marketCap / 1e7) : null, url: x.url ?? '',
+    };
+  });
+} else { errors.push('dividends'); dividends = dividends.filter((d) => (Date.parse(d.exDate.replace(/-/g, ' ') + ' UTC') || 0) >= istDay0); }
+const actions = [];
+for (const [k, label] of [['bonus', 'Bonus'], ['split', 'Split'], ['rights', 'Rights']]) {
+  if (!ca[k]) { errors.push(k); continue; }
+  for (const x of ca[k]) {
+    const t = dmyMs(x.exDate); if (!soon(t)) continue;
+    actions.push({ name: String(x.stockName).trim(), action: label, ratio: x.ratio && x.ratio !== '-' ? x.ratio : '', premium: x.premium ?? null, exDate: dmyTxt(t), t, price: numv(x.lastValue), pctChg: numv(x.perChange), mcapCr: x.marketCap ? Math.round(x.marketCap / 1e7) : null, url: x.url ?? '' });
+  }
+}
+const corpOther = (ca.bonus || ca.split || ca.rights) ? actions.sort((a, b) => a.t - b.t).slice(0, 15).map(({ t, ...r }) => r) : (prev.corpOther ?? []);
+const divMeetings = ca.meet ? ca.meet.filter((x) => /dividend/i.test(x.remark ?? '')).map((x) => ({ x, t: Date.parse(String(x.date).replace(',', '') + ' UTC') }))
+  .filter((r) => isFinite(r.t) && r.t >= istDay0 && r.t <= istDay0 + 14 * 864e5).sort((a, b) => a.t - b.t || (b.x.marketCap ?? 0) - (a.x.marketCap ?? 0)).slice(0, 12)
+  .map(({ x, t }) => ({ name: String(x.stockName).trim(), date: dmyTxt(t), purpose: x.remark, price: numv(x.lastValue), mcapCr: x.marketCap ? Math.round(x.marketCap / 1e7) : null, url: x.url ?? '' })) : (prev.divMeetings ?? []);
+// Older pages read corpActions
+const corpActions = [...dividends.map((d) => ({ symbol: d.name, subject: `${d.type} dividend${d.amount ? ' ₹' + d.amount + '/share' : ''}`, exDate: d.exDate })),
+  ...corpOther.map((c) => ({ symbol: c.name, subject: `${c.action}${c.ratio ? ' ' + c.ratio : ''}`, exDate: c.exDate }))]
+  .sort((a, b) => Date.parse(a.exDate.replace(/-/g, ' ') + ' UTC') - Date.parse(b.exDate.replace(/-/g, ' ') + ' UTC')).slice(0, 12);
 
 // Next session (skips weekends + NSE holidays when known)
 function nextSession() {
@@ -262,7 +375,7 @@ const out = {
   mood, summary, conclusion, bull, bear, risks: risks.slice(0, 5),
   trending, gainerReasons, loserReasons, sectorReasons, assetReasons: {},
   stockNews: stockNews.map(slim), econNews: econNews.map(slim), mfNews: mfNews.map(slim), finNews: finNews.map(slim),
-  earnings: earnings.map(slim), analyst: analyst.map(slim), ipoNote, ipos, corpActions, fiidii,
+  earnings: earnings.map(slim), analyst: analyst.map(slim), ipoNote, ipos, ipoUpcoming, ipoAllot, ipoListed, ipoPipeline, dividends, divMeetings, corpOther, corpActions, fiidii,
   nextSession: nextSession(),
   generated: 'Automatic: headlines from ET, Mint, Business Standard and Google News RSS; summary, mood and levels computed from prices.',
 };
