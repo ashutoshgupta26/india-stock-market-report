@@ -4,6 +4,9 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  # Weekdays 8:30 AM and 4:30 PM IST: refreshes dividends, corporate actions and FII/DII for the app's live feed
+  schedule:
+    - cron: "0 3,11 * * 1-5"
 
 # Data is published straight to GitHub Pages and never committed, so the repo does not grow.
 permissions:

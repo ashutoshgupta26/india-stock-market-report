@@ -136,7 +136,14 @@ async function tlFii() {
   } catch { return null; }
 }
 const [fiiRaw, holRaw] = [(await mcFii()) ?? (await tlFii()), await nse('holiday-master?type=trading')];
-const fiidii = fiiRaw?.length ? fiiRaw : (errors.push('fii/dii'), prev.fiidii ?? []);
+// Some sites refuse Google's servers; the copy published by the GitHub job (refreshed on weekdays) fills those gaps
+const PUB = 'https://ashutoshgupta26.github.io/india-stock-market-report/news.json';
+let pubCache;
+async function pubNews() {
+  if (pubCache === undefined) { pubCache = null; try { const r = await get(PUB + '?t=' + Math.floor(Date.now() / 6e5), { headers: { Accept: 'application/json' } }, 1); if (r) pubCache = await r.json(); } catch {} }
+  return pubCache;
+}
+const fiidii = fiiRaw?.length ? fiiRaw : (errors.push('fii/dii'), (await pubNews())?.fiidii?.length ? pubCache.fiidii : prev.fiidii ?? []);
 
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const istNow = new Date(Date.now() + 5.5 * 3600e3);
@@ -253,7 +260,7 @@ if (ca.div) {
       mcapCr: x.marketCap ? Math.round(x.marketCap / 1e7) : null, url: x.url ?? '',
     };
   });
-} else { errors.push('dividends'); dividends = dividends.filter((d) => (Date.parse(d.exDate.replace(/-/g, ' ') + ' UTC') || 0) >= istDay0); }
+} else { errors.push('dividends'); if ((await pubNews())?.dividends) dividends = pubCache.dividends; dividends = dividends.filter((d) => (Date.parse(d.exDate.replace(/-/g, ' ') + ' UTC') || 0) >= istDay0); }
 const actions = [];
 for (const [k, label] of [['bonus', 'Bonus'], ['split', 'Split'], ['rights', 'Rights']]) {
   if (!ca[k]) { errors.push(k); continue; }
@@ -262,10 +269,11 @@ for (const [k, label] of [['bonus', 'Bonus'], ['split', 'Split'], ['rights', 'Ri
     actions.push({ name: String(x.stockName).trim(), action: label, ratio: x.ratio && x.ratio !== '-' ? x.ratio : '', premium: x.premium ?? null, exDate: dmyTxt(t), t, price: numv(x.lastValue), pctChg: numv(x.perChange), mcapCr: x.marketCap ? Math.round(x.marketCap / 1e7) : null, url: x.url ?? '' });
   }
 }
-const corpOther = (ca.bonus || ca.split || ca.rights) ? actions.sort((a, b) => a.t - b.t).slice(0, 15).map(({ t, ...r }) => r) : (prev.corpOther ?? []);
+const notPast = (r) => (Date.parse(String(r.exDate || r.date || '').replace(/-/g, ' ') + ' UTC') || 0) >= istDay0;
+const corpOther = (ca.bonus || ca.split || ca.rights) ? actions.sort((a, b) => a.t - b.t).slice(0, 15).map(({ t, ...r }) => r) : ((await pubNews())?.corpOther ?? prev.corpOther ?? []).filter(notPast);
 const divMeetings = ca.meet ? ca.meet.filter((x) => /dividend/i.test(x.remark ?? '')).map((x) => ({ x, t: Date.parse(String(x.date).replace(',', '') + ' UTC') }))
   .filter((r) => isFinite(r.t) && r.t >= istDay0 && r.t <= istDay0 + 14 * 864e5).sort((a, b) => a.t - b.t || (b.x.marketCap ?? 0) - (a.x.marketCap ?? 0)).slice(0, 12)
-  .map(({ x, t }) => ({ name: String(x.stockName).trim(), date: dmyTxt(t), purpose: x.remark, price: numv(x.lastValue), mcapCr: x.marketCap ? Math.round(x.marketCap / 1e7) : null, url: x.url ?? '' })) : (prev.divMeetings ?? []);
+  .map(({ x, t }) => ({ name: String(x.stockName).trim(), date: dmyTxt(t), purpose: x.remark, price: numv(x.lastValue), mcapCr: x.marketCap ? Math.round(x.marketCap / 1e7) : null, url: x.url ?? '' })) : ((await pubNews())?.divMeetings ?? prev.divMeetings ?? []).filter(notPast);
 // Older pages read corpActions
 const corpActions = [...dividends.map((d) => ({ symbol: d.name, subject: `${d.type} dividend${d.amount ? ' ₹' + d.amount + '/share' : ''}`, exDate: d.exDate })),
   ...corpOther.map((c) => ({ symbol: c.name, subject: `${c.action}${c.ratio ? ' ' + c.ratio : ''}`, exDate: c.exDate }))]
